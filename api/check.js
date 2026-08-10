@@ -1,5 +1,3 @@
-// Fonction de contrôle d'accès L&A — lit la liste dans un repo GitHub PRIVÉ (jamais exposée).
-// Renvoie {active, ok} + les infos de mise à jour (latestVersion, updateUrl, updateNote).
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -10,10 +8,11 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(
       'https://api.github.com/repos/' + REPO + '/contents/' + FILE + '?ref=main&_t=' + Date.now(),
-      { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github.raw+json', 'User-Agent': 'la-control' } }
+      { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github+json', 'User-Agent': 'la-control', 'Cache-Control': 'no-cache' } }
     );
     if (!r.ok) return res.status(200).json({ error: 'gh', status: r.status });
-    const ctrl = await r.json();
+    const meta = await r.json();
+    const ctrl = JSON.parse(Buffer.from(meta.content || '', 'base64').toString('utf8'));
     const upd = { latestVersion: ctrl.latestVersion, updateUrl: ctrl.updateUrl, updateNote: ctrl.updateNote };
     const message = ctrl.message || "Acces suspendu. Contactez l'administrateur.";
     if (ctrl.active === false) return res.status(200).json({ active: false, message, ...upd });
